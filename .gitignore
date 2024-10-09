@@ -1,0 +1,10 @@
+# Folders
+__pycache__/
+instance/
+massanger/
+migrations/
+
+# File
+Abstract format.docx
+app2.py
+app_main.py
