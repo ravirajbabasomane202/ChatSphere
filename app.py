@@ -1,4 +1,10 @@
-#source massanger/bin/activate
+#source myenv/bin/activate
+#pip install -r requirements.txt
+#flask db init
+#flask db migrate -m "Initial migration."
+#flask db upgrade
+#python app.py
+
 
 #   User Name   Password
 #   om          om@123
