@@ -6,3 +6,4 @@ Flask-Migrate
 Flask-SocketIO
 Flask-WTF
 wtforms
+Pillow

@@ -1,0 +1,147 @@
+.app {
+  background-color: #f0f0f0;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.side {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  padding: 10px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.side-one {
+  padding: 20px;
+}
+
+.heading {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+.heading-avatar {
+  padding: 10px;
+}
+
+.heading-avatar-icon {
+  font-size: 30px;
+  color: #337ab7;
+}
+
+.heading-dot {
+  padding: 10px;
+  font-size: 20px;
+  color: #337ab7;
+  cursor: pointer;
+}
+
+.searchBox {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+.searchBox-inner {
+  padding: 10px;
+}
+
+.form-group {
+  position: relative;
+}
+
+.form-control {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  width: 100%;
+}
+
+.form-control-feedback {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  font-size: 20px;
+  color: #337ab7;
+}
+
+.sideBar {
+  padding: 10px;
+}
+
+.user {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  cursor: pointer;
+}
+
+.user:hover {
+  background-color: #f0f0f0;
+}
+
+.user.selected {
+  background-color: #337ab7;
+  color: #fff;
+}
+
+.conversation {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  padding: 10px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.message-section {
+  padding: 10px;
+}
+
+.message {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+.sent {
+  background-color: #337ab7;
+  color: #fff;
+  padding: 10px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.received {
+  background-color: #fff;
+  padding: 10px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.message-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.message-form {
+  padding: 10px;
+}
+
+.message-emojis {
+  padding: 10px;
+  font-size: 20px;
+  color: #337ab7;
+  cursor: pointer;
+}
+
+.message-main {
+  padding: 10px;
+}
+
+.message-send {
+  padding: 10px;
+  font-size: 20px;
+  color: #337ab7;
+  cursor: pointer;
+}

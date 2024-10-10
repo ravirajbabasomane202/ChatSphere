@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+<body>
+
+  <div class="container app">
+    <div class="row app-one">
+
+      <!-- Sidebar Section -->
+      <div class="col-sm-4 side">
+        <div class="side-one">
+          
+          <!-- Heading -->
+          <div class="row heading">
+            <div class="col-sm-3 col-xs-3 heading-avatar">
+              <div class="heading-avatar-icon">
+                Raviraj
+              </div>
+            </div>
+            <div class="col-sm-1 col-xs-1 heading-dot pull-right">
+              <!-- <i class="fa fa-ellipsis-v fa-2x pull-right" aria-hidden="true"></i> -->
+            </div>
+            <div class="col-sm-2 col-xs-2 heading-compose pull-right">
+                <div class="heading-avatar-icon">
+                Logout
+                  </div>
+            </div>
+          </div>
+
+          <!-- Search Box -->
+          <div class="row searchBox">
+            <div class="col-sm-12 searchBox-inner">
+              <div class="form-group has-feedback">
+                <input id="searchText" type="text" class="form-control" name="searchText" placeholder="Search">
+                <span class="glyphicon glyphicon-search form-control-feedback"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sidebar for users/chats -->
+          <div class="row sideBar">
+            <!-- Loop over users or chat data -->
+            <ul id="users" class="list-group">
+                {% for user in users %}
+                    <li style="margin-left: 4%; width: 300px;" class="user list-group-item" data-id="{{ user.id }}">{{ user.username }}</li>
+                {% endfor %}
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main chat window -->
+      <div class="col-sm-8 conversation">
+        <!-- Replace with chat content -->
+        <div class="row heading">
+          <div class="col-sm-3 col-xs-3 heading-avatar">
+            <div class="heading-avatar-icon">
+              
+            </div>
+          </div>
+          <div class="col-sm-9 col-xs-9">
+            {% if selected_chat %}
+    <h3>Chat with {{ selected_chat.name }}</h3>
+{% else %}
+    <h3>Select a user to start a chat</h3>
+{% endif %}
+          </div>
+        </div>
+
+        <!-- Chat messages -->
+        <div class="message-section">
+          <div id="messages" class="border p-2 mb-3" style="height: 400px; overflow-y: auto;">
+            {% for message in messages %}
+                <div class="message {% if message.sender_id == current_user.id %}sent{% else %}received{% endif %}">
+                    <strong>{{ message.sender.username }}:</strong> {{ message.content }} <br>
+                    {% if message.image %}
+                        <img src="{{ message.image }}" alt="Image" class="message-image">
+                    {% endif %}
+                </div>
+            {% endfor %}
+          </div>
+
+          <!-- Input area for new messages -->
+          <div  class="row message-form">
+            <div style="margin-left: 5%;" class="col-sm-1 col-xs-1 message-emojis">
+                <i  class="fa fa-smile-o fa-2x"></i>
+                <input type="file" id="file-input" style="display: none;">
+            </div>
+            <div class="col-sm-9 col-xs-9 message-main">
+              <form id="message-form" action="" method="POST" enctype="multipart/form-data">
+                <input type="hidden" id="receiver-id" name="receiver_id">
+                <textarea name="message" required class="form-control" rows="1"></textarea>
+              </form>
+            </div>
+
+            <div class="col-sm-1 col-xs-1 message-send">
+                
+ <button type="submit" > <i class="fa fa-send fa-2x" aria-hidden="true"></i> </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    $(document).ready(function() {
+      // Handle user selection
+      $('.user').on('click', function() {
+        const selectedUserId = $(this).data('id');
+        $('#receiver-id').val(selectedUserId);
+        $('.user').removeClass('selected');
+        $(this).addClass('selected');
+      });
+
+      // Handle form submission
+      $('#message-form').on('submit', function(event) {
+        event.preventDefault();
+        const formData = new FormData(this);
+        $.ajax({
+          type: 'POST',
+          url: $(this).attr('action'),
+          data : formData,
+          processData: false,
+          contentType: false,
+          success: function(response) {
+            $('textarea[name="message"]').val('');
+          },
+          error: function(err) {
+            console.error('Error sending message:', err);
+          }
+        });
+      });
+
+      // Socket.IO setup
+      const socket = io();
+      socket.on('message', function(data) {
+        $('#messages').append('<div class="message received"><strong>' + data.sender_id + ':</strong> ' + data.content + '</div>');
+      });
+    });
+  </script>
+</body>
+</html>
