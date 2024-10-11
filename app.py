@@ -11,7 +11,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from forms import LoginForm, SignupForm, MessageForm
+from forms import LoginForm, SignupForm, MessageForm, LogoutForm
 #from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -61,7 +61,6 @@ class User(UserMixin, db.Model):
     public_key = db.Column(db.Text, nullable=False)
     private_key = db.Column(db.Text, nullable=False)
 
-
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -74,8 +73,6 @@ class Message(db.Model):
 
     sender = db.relationship('User', foreign_keys=[sender_id])
     receiver = db.relationship('User', foreign_keys=[receiver_id])
-
-
 
 def rsa_encrypt(public_key, data):
 
@@ -109,7 +106,6 @@ def rsa_encrypt(public_key, data):
 
         raise
 
-
 def rsa_decrypt(private_key, enc_data):
 
     try:
@@ -142,7 +138,6 @@ def rsa_decrypt(private_key, enc_data):
 
         raise
 
-
 def aes_encrypt(key, message):
 
     try:
@@ -166,7 +161,6 @@ def aes_encrypt(key, message):
         logging.error(f"Error encrypting data with AES: {e}")
 
         raise
-
 
 def aes_decrypt(key, iv, ciphertext):
 
@@ -193,7 +187,6 @@ def aes_decrypt(key, iv, ciphertext):
         logging.error(f"Error decrypting data with AES: {e}")
 
         raise
-
 
 def generate_rsa_key_pair():
 
@@ -264,19 +257,52 @@ def login():
             flash('Login Unsuccessful. Please check username and password', 'danger')
     return render_template('login.html', form=form)
 
-@app.route('/chat')
+# @app.route('/chat')
+# @login_required
+# def chat():
+#     try:
+#         users = User.query.all()
+#         messages = Message.query.filter(
+#             (Message.sender_id == current_user.id) | (Message.receiver_id == current_user.id)
+#         ).all()
+
+#         form = LogoutForm() 
+#         return render_template('chat.html', users=users, messages=messages, selected_chat=None, form=form)
+#     except Exception as e:
+#         logging.error(f"Error retrieving chat data: {e}")
+#         flash('Error retrieving chat data. Please try again later.', 'danger')
+#         return redirect(url_for('login'))
+
+
+
+@app.route('/chat', defaults={'selected_user_id': None})
+@app.route('/chat/<int:selected_user_id>')
 @login_required
-def chat():
+def chat(selected_user_id):
     try:
         users = User.query.all()
+        # Fetch messages based on the selected user
         messages = Message.query.filter(
-            (Message.sender_id == current_user.id) | (Message.receiver_id == current_user.id)
-        ).all()
-        return render_template('chat.html', users=users, messages=messages, selected_chat=None)
+            ((Message.sender_id == current_user.id) & (Message.receiver_id == selected_user_id)) |
+            ((Message.sender_id == selected_user_id) & (Message.receiver_id == current_user.id))
+        ).all() if selected_user_id else []
+
+        form = LogoutForm() 
+        selected_chat = User.query.get(selected_user_id) if selected_user_id else None
+        return render_template('chat.html', users=users, messages=messages, selected_chat=selected_chat, form=form)
     except Exception as e:
         logging.error(f"Error retrieving chat data: {e}")
         flash('Error retrieving chat data. Please try again later.', 'danger')
         return redirect(url_for('login'))
+
+
+
+@app.route('/logout', methods=['POST'])
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
 
 @app.route('/send_message', methods=['POST'])
 @login_required
@@ -350,11 +376,7 @@ def send_message():
 def handle_message(msg):
     print(f'Message: {msg}')
 
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for('login'))
+
 
 if __name__ == '__main__':
         # Ensure database migrations are applied

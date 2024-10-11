@@ -23,7 +23,7 @@
           <div class="row heading">
             <div class="col-sm-3 col-xs-3 heading-avatar">
               <div class="heading-avatar-icon">
-                Raviraj
+                {{ current_user.username }}
               </div>
             </div>
             <div class="col-sm-1 col-xs-1 heading-dot pull-right">
@@ -31,8 +31,13 @@
             </div>
             <div class="col-sm-2 col-xs-2 heading-compose pull-right">
                 <div class="heading-avatar-icon">
-                Logout
-                  </div>
+                  <form action="{{ url_for('logout') }}" method="POST"> <!-- Logout form -->
+                    {{ form.hidden_tag() }} 
+                    <button type="submit" class="btn btn-link" style="padding: 0; color: inherit;">
+                        Logout
+                    </button>
+                  </form>
+                </div>
             </div>
           </div>
 
@@ -51,7 +56,9 @@
             <!-- Loop over users or chat data -->
             <ul id="users" class="list-group">
                 {% for user in users %}
-                    <li style="margin-left: 4%; width: 300px;" class="user list-group-item" data-id="{{ user.id }}">{{ user.username }}</li>
+                {% if user.id != current_user.id %}  <!-- Exclude the current user -->
+                <li style="margin-left: 4%; width: 300px;" class="user list-group-item" data-id="{{ user.id }}">{{ user.username }}</li>
+                {% endif %}
                 {% endfor %}
             </ul>
           </div>
@@ -64,15 +71,14 @@
         <div class="row heading">
           <div class="col-sm-3 col-xs-3 heading-avatar">
             <div class="heading-avatar-icon">
-              
             </div>
           </div>
           <div class="col-sm-9 col-xs-9">
             {% if selected_chat %}
-    <h3>Chat with {{ selected_chat.name }}</h3>
-{% else %}
-    <h3>Select a user to start a chat</h3>
-{% endif %}
+            <h3>Chat with {{ selected_chat.name }}</h3>
+            {% else %}
+            <h3>Select a user to start a chat</h3>
+            {% endif %}
           </div>
         </div>
 
@@ -90,21 +96,22 @@
           </div>
 
           <!-- Input area for new messages -->
-          <div  class="row message-form">
+          <div class="row message-form">
             <div style="margin-left: 5%;" class="col-sm-1 col-xs-1 message-emojis">
-                <i  class="fa fa-smile-o fa-2x"></i>
+                <i class="fa fa-smile-o fa-2x"></i>
                 <input type="file" id="file-input" style="display: none;">
             </div>
             <div class="col-sm-9 col-xs-9 message-main">
               <form id="message-form" action="" method="POST" enctype="multipart/form-data">
                 <input type="hidden" id="receiver-id" name="receiver_id">
-                <textarea name="message" required class="form-control" rows="1"></textarea>
+                <textarea name="message" required class="form-control" rows="1" placeholder="Type your message..."></textarea>
               </form>
             </div>
 
             <div class="col-sm-1 col-xs-1 message-send">
-                
- <button type="submit" > <i class="fa fa-send fa-2x" aria-hidden="true"></i> </button>
+              <button type="submit" form="message-form"> 
+                <i class="fa fa-send fa-2x" aria-hidden="true"></i> 
+              </button>
             </div>
           </div>
         </div>
@@ -129,10 +136,11 @@
         $.ajax({
           type: 'POST',
           url: $(this).attr('action'),
-          data : formData,
+          data: formData,
           processData: false,
           contentType: false,
           success: function(response) {
+            $('#messages').append('<div class="message sent"><strong>' + '{{ current_user.username }}' + ':</strong> ' + formData.get('message') + '</div>');
             $('textarea[name="message"]').val('');
           },
           error: function(err) {
