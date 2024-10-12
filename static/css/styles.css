@@ -1,0 +1,144 @@
+/* General styles */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f0f0f0;
+}
+
+.app {
+  max-width: 100%;
+  margin: 40px auto;
+  padding: 20px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.side {
+  background-color: #f7f7f7;
+  padding: 20px;
+  border-right: 1px solid #ddd;
+}
+
+.side-one {
+  padding: 20px;
+}
+
+.heading {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.searchBox-inner {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+}
+
+.user {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  cursor: pointer;
+}
+
+.user:hover, .user.selected {
+  background-color: #e0e0e0;
+}
+
+.conversation {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.message-section {
+  flex-grow: 1;
+  margin-bottom: 10px;
+}
+
+.message {
+  margin-bottom: 15px;
+  padding: 10px;
+}
+
+.sent {
+  background-color: #d9fdd3;
+  text-align: left;
+  margin-right: auto;
+  max-width: 70%;
+  border-radius: 15px 15px 15px 0;
+}
+
+/* Align received messages (from the selected user) to the right */
+.received {
+  background-color: #ffe6e6;
+  text-align: right;
+  margin-left: auto;
+  max-width: 70%;
+  border-radius: 15px 15px 0 15px;
+}
+
+/* Message image styles */
+.message-image {
+  max-width: 100%;
+  margin: 10px 0;
+  border-radius: 10px;
+}
+
+.message-form {
+  display: flex;
+  align-items: center;
+}
+
+.emoji-button, .message-send i {
+  cursor: pointer;
+}
+
+textarea {
+  resize: none;
+}
+
+/* Media queries for mobile */
+@media (max-width: 768px) {
+  /* Hide sidebar by default */
+  .sent, .received {
+    max-width: 85%;
+  }
+  #sidebar {
+    display: none;
+  }
+
+  /* Align input fields */
+  .message-form {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  textarea {
+    width: 100%;
+  }
+
+  .emoji-button, .message-send i {
+    font-size: 1.5rem;
+  }
+
+  /* Toggle button for mobile */
+  .mobile-toggle {
+    padding-bottom: 15px;
+  }
+}
+
+@media (max-width: 576px) {
+  .message-section {
+    height: 50vh;
+  }
+
+  textarea {
+    font-size: 0.85rem;
+  }
+
+  .message-send i {
+    font-size: 1.5rem;
+  }
+}

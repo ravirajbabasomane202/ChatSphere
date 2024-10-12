@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, SelectField, TextAreaField, FileField
+from wtforms import StringField, PasswordField, SubmitField, SelectField, TextAreaField, FileField, HiddenField
 from wtforms.validators import DataRequired, Length, EqualTo
 
 class SignupForm(FlaskForm):
@@ -18,3 +18,6 @@ class MessageForm(FlaskForm):
     message = StringField('Message', validators=[DataRequired()])
     image = FileField('Image')
     submit = SubmitField('Send')
+
+class LogoutForm(FlaskForm):
+    hidden = HiddenField()

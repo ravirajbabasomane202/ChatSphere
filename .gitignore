@@ -3,6 +3,7 @@ __pycache__/
 instance/
 massanger/
 migrations/
+myenv/
 
 # File
 Abstract format.docx
