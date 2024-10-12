@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat</title>
+    <title>Responsive Chat</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -11,69 +11,58 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 </head>
 <body>
-
   <div class="container app">
     <div class="row app-one">
+      
+      <!-- Toggle button for mobile view -->
+      <div class="col-12 mobile-toggle text-right d-md-none">
+        <button class="btn btn-primary" id="toggle-sidebar">Users</button>
+      </div>
 
       <!-- Sidebar Section -->
-      <div class="col-sm-4 side">
+      <div class="col-md-4 col-sm-4 col-12 side d-none d-md-block" id="sidebar">
         <div class="side-one">
-          
           <!-- Heading -->
           <div class="row heading">
-            <div class="col-sm-3 col-xs-3 heading-avatar">
-              <div class="heading-avatar-icon">
-                {{ current_user.username }}
-              </div>
+            <div class="col-4 text-center heading-avatar">
+              <div class="btn btn-primary">{{ current_user.username }}</div>
             </div>
-            <div class="col-sm-1 col-xs-1 heading-dot pull-right">
-              <!-- <i class="fa fa-ellipsis-v fa-2x pull-right" aria-hidden="true"></i> -->
-            </div>
-            <div class="col-sm-2 col-xs-2 heading-compose pull-right">
-                <div class="heading-avatar-icon">
-                  <form action="{{ url_for('logout') }}" method="POST"> <!-- Logout form -->
-                    {{ form.hidden_tag() }} 
-                    <button type="submit" class="btn btn-link" style="padding: 0; color: inherit;">
-                        Logout
-                    </button>
-                  </form>
-                </div>
+            <div class="col-4 text-right heading-compose">
+              <form action="{{ url_for('logout') }}" method="POST">
+                {{ form.hidden_tag() }}
+                <button type="submit" class="btn btn-danger">Logout</button>
+              </form>
             </div>
           </div>
 
           <!-- Search Box -->
-          <div class="row searchBox">
-            <div class="col-sm-12 searchBox-inner">
+          <!-- <div class="row searchBox">
+            <div class="col-12 searchBox-inner">
               <div class="form-group has-feedback">
                 <input id="searchText" type="text" class="form-control" name="searchText" placeholder="Search">
-                <span class="glyphicon glyphicon-search form-control-feedback"></span>
               </div>
             </div>
-          </div>
+          </div> -->
 
           <!-- Sidebar for users/chats -->
-          <div class="row sideBar">
-            <!-- Loop over users or chat data -->
-            <ul id="users" class="list-group">
+          <div class="row searchBox">
+            <div class="col-12 searchBox-inner">
+              <ul id="users" class="list-group">
                 {% for user in users %}
-                {% if user.id != current_user.id %}  <!-- Exclude the current user -->
-                <li style="margin-left: 4%; width: 300px;" class="user list-group-item" data-id="{{ user.id }}">{{ user.username }}</li>
+                {% if user.id != current_user.id %}
+                <li class="user list-group-item" data-id="{{ user.id }}">{{ user.username }}</li>
                 {% endif %}
                 {% endfor %}
-            </ul>
+              </ul>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Main chat window -->
-      <div class="col-sm-8 conversation">
-        <!-- Replace with chat content -->
+      <div class="col-md-8 col-sm-8 col-12 conversation">
         <div class="row heading">
-          <div class="col-sm-3 col-xs-3 heading-avatar">
-            <div class="heading-avatar-icon">
-            </div>
-          </div>
-          <div class="col-sm-9 col-xs-9">
+          <div class="col-9">
             {% if selected_chat %}
             <h3>Chat with {{ selected_chat.name }}</h3>
             {% else %}
@@ -84,77 +73,131 @@
 
         <!-- Chat messages -->
         <div class="message-section">
-          <div id="messages" class="border p-2 mb-3" style="height: 400px; overflow-y: auto;">
+          <div id="messages" class="border p-2 mb-3" style="height: 60vh; overflow-y: auto;">
             {% for message in messages %}
-                <div class="message {% if message.sender_id == current_user.id %}sent{% else %}received{% endif %}">
-                    <strong>{{ message.sender.username }}:</strong> {{ message.content }} <br>
-                    {% if message.image %}
-                        <img src="{{ message.image }}" alt="Image" class="message-image">
-                    {% endif %}
-                </div>
+            <div class="message {% if message.sender_id == current_user.id %}sent{% else %}received{% endif %}">
+              <strong>{{ message.sender.username }}:</strong> {{ message.content }} <br>
+              {% if message.image %}
+              <!-- <img src="{{ message.image }}" alt="Image" class="message-image"> -->
+              
+              
+              <!-- <img src="{{ url_for('static', filename='uploads/' + message.image) }}" alt="Image" class="message-image"> -->
+              <img src="{{ message.image }}" alt="Image" class="message-image">
+
+
+
+              {% endif %}
+            </div>
             {% endfor %}
           </div>
+          
 
           <!-- Input area for new messages -->
-          <div class="row message-form">
-            <div style="margin-left: 5%;" class="col-sm-1 col-xs-1 message-emojis">
-                <i class="fa fa-smile-o fa-2x"></i>
-                <input type="file" id="file-input" style="display: none;">
+          <div class="row message-form align-items-center">
+            <div class="col-1 text-center">
+              <i class="fa fa-smile-o fa-2x emoji-button"></i>
+              <input type="file" id="file-input" style="display: none;">
             </div>
-            <div class="col-sm-9 col-xs-9 message-main">
+            <div class="col-9">
               <form id="message-form" action="" method="POST" enctype="multipart/form-data">
                 <input type="hidden" id="receiver-id" name="receiver_id">
                 <textarea name="message" required class="form-control" rows="1" placeholder="Type your message..."></textarea>
               </form>
             </div>
-
-            <div class="col-sm-1 col-xs-1 message-send">
-              <button type="submit" form="message-form"> 
-                <i class="fa fa-send fa-2x" aria-hidden="true"></i> 
+            <div class="col-1 text-center">
+              <button type="submit" form="message-form" class="btn btn-primary">
+                <i class="fa fa-send fa-2x" aria-hidden="true"></i>
               </button>
             </div>
           </div>
         </div>
       </div>
+
     </div>
   </div>
 
+
+
   <script>
     $(document).ready(function() {
-      // Handle user selection
+      // User selection and redirection
       $('.user').on('click', function() {
         const selectedUserId = $(this).data('id');
-        $('#receiver-id').val(selectedUserId);
-        $('.user').removeClass('selected');
-        $(this).addClass('selected');
+        window.location.href = '/chat/' + selectedUserId;
       });
-
-      // Handle form submission
+  
+      // Message form submission via AJAX
       $('#message-form').on('submit', function(event) {
         event.preventDefault();
+        
         const formData = new FormData(this);
+        const selectedUserId = $('#receiver-id').val(); // Make sure the receiver ID is set
+  
         $.ajax({
           type: 'POST',
-          url: $(this).attr('action'),
+          url: $(this).attr('action'), // Make sure the form action points to the correct endpoint
           data: formData,
           processData: false,
           contentType: false,
           success: function(response) {
+            // Append the new message to the chat window
             $('#messages').append('<div class="message sent"><strong>' + '{{ current_user.username }}' + ':</strong> ' + formData.get('message') + '</div>');
-            $('textarea[name="message"]').val('');
+            $('textarea[name="message"]').val(''); // Clear the message input
           },
           error: function(err) {
             console.error('Error sending message:', err);
           }
         });
       });
-
-      // Socket.IO setup
+  
+      // Toggle the sidebar for mobile view
+      document.getElementById("toggle-sidebar").addEventListener("click", function() {
+        var sidebar = document.getElementById("sidebar");
+        sidebar.classList.toggle("d-none");
+      });
+  
+      // Socket.io listener for incoming messages
       const socket = io();
       socket.on('message', function(data) {
         $('#messages').append('<div class="message received"><strong>' + data.sender_id + ':</strong> ' + data.content + '</div>');
       });
+
+
+          // Trigger file input on emoji icon click
+    $('.emoji-button').on('click', function() {
+        $('#file-input').click();  // Open file dialog
+    });
+
+    // When a file is selected, append it to the form data
+    $('#file-input').on('change', function() {
+        // Get the selected file
+        const file = this.files[0];
+        if (file) {
+            // If a file is selected, append it to the form and send with AJAX
+            const formData = new FormData($('#message-form')[0]);
+            formData.append('image', file); // Append image to form data
+
+            // AJAX call to submit the message and the image
+            $.ajax({
+                type: 'POST',
+                url: $('#message-form').attr('action'),  // Ensure the action points to the correct endpoint
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    // If the message contains an image, display it
+                    $('#messages').append('<div class="message sent"><strong>' + '{{ current_user.username }}' + ':</strong> <img src="' + response.image_url + '" alt="Image" class="message-image"><br>' + formData.get('message') + '</div>');
+                    $('textarea[name="message"]').val('');  // Clear the message input
+                    $('#file-input').val('');  // Clear the file input
+                },
+                error: function(err) {
+                    console.error('Error uploading image:', err);
+                }
+            });
+        }
+    });
     });
   </script>
+  
 </body>
 </html>

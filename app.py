@@ -257,43 +257,56 @@ def login():
             flash('Login Unsuccessful. Please check username and password', 'danger')
     return render_template('login.html', form=form)
 
-# @app.route('/chat')
-# @login_required
-# def chat():
-#     try:
-#         users = User.query.all()
-#         messages = Message.query.filter(
-#             (Message.sender_id == current_user.id) | (Message.receiver_id == current_user.id)
-#         ).all()
-
-#         form = LogoutForm() 
-#         return render_template('chat.html', users=users, messages=messages, selected_chat=None, form=form)
-#     except Exception as e:
-#         logging.error(f"Error retrieving chat data: {e}")
-#         flash('Error retrieving chat data. Please try again later.', 'danger')
-#         return redirect(url_for('login'))
-
 
 
 @app.route('/chat', defaults={'selected_user_id': None})
-@app.route('/chat/<int:selected_user_id>')
+@app.route('/chat/<int:selected_user_id>', methods=['GET', 'POST'])
 @login_required
 def chat(selected_user_id):
     try:
         users = User.query.all()
-        # Fetch messages based on the selected user
-        messages = Message.query.filter(
-            ((Message.sender_id == current_user.id) & (Message.receiver_id == selected_user_id)) |
-            ((Message.sender_id == selected_user_id) & (Message.receiver_id == current_user.id))
-        ).all() if selected_user_id else []
+
+        if request.method == 'POST':
+            # Handling the AJAX message post request
+            message_content = request.form['message']
+            receiver_id = request.form['receiver_id']
+            
+            # Save the message to the database
+            new_message = Message(
+                sender_id=current_user.id,
+                receiver_id=receiver_id,
+                content=message_content
+            )
+            db.session.add(new_message)
+            db.session.commit()
+
+            # Optionally emit the message through Socket.IO here
+            socketio.emit('message', {
+                'sender_id': current_user.id,
+                'receiver_id': receiver_id,
+                'content': message_content
+            })
+
+            return jsonify({'status': 'Message sent successfully'})
+
+        # Fetch messages between the current user and the selected user
+        messages = []
+        selected_chat = None
+        if selected_user_id:
+            messages = Message.query.filter(
+                ((Message.sender_id == current_user.id) & (Message.receiver_id == selected_user_id)) |
+                ((Message.sender_id == selected_user_id) & (Message.receiver_id == current_user.id))
+            ).all()
+            selected_chat = User.query.get(selected_user_id)
 
         form = LogoutForm() 
-        selected_chat = User.query.get(selected_user_id) if selected_user_id else None
         return render_template('chat.html', users=users, messages=messages, selected_chat=selected_chat, form=form)
+
     except Exception as e:
         logging.error(f"Error retrieving chat data: {e}")
         flash('Error retrieving chat data. Please try again later.', 'danger')
         return redirect(url_for('login'))
+
 
 
 
