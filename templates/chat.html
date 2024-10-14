@@ -15,16 +15,12 @@
 <body>
     <div class="container app">
         <div class="row app-one">
-
-            <!-- Toggle button for mobile view -->
             <div class="col-12 mobile-toggle text-right d-md-none mb-2">
                 <button class="btn btn-primary" id="toggle-sidebar">Users</button>
             </div>
 
-            <!-- Sidebar Section -->
             <div class="col-md-4 col-sm-4 col-12 side d-none d-md-block" id="sidebar">
                 <div class="side-one">
-                    <!-- Heading -->
                     <div class="row heading mb-2">
                         <div class="col-4 text-center heading-avatar">
                             <div class="btn btn-primary">{{ current_user.username }}</div>
@@ -37,7 +33,6 @@
                         </div>
                     </div>
 
-                    <!-- Sidebar for users/chats -->
                     <div class="row searchBox">
                         <div class="col-12 searchBox-inner">
                             <ul id="users" class="list-group">
@@ -52,7 +47,6 @@
                 </div>
             </div>
 
-            <!-- Main chat window -->
             <div class="col-md-8 col-sm-8 col-12 conversation">
                 <div class="row heading mb-2">
                     <div class="col-12">
@@ -64,38 +58,46 @@
                     </div>
                 </div>
 
-                <!-- Chat messages -->
                 <div class="message-section">
                     <div id="messages" class="border p-2 mb-3" style="height: 60vh; overflow-y: auto;">
                         {% for message in messages %}
                         <div class="message {% if message.sender_id == current_user.id %}sent{% else %}received{% endif %}">
+                            {% if message.sender_id == current_user.id %}
+                            <strong>You:</strong> {{ message.content }} <br>
+                            {% if message.image %}
+                            <img src="{{ url_for('static', filename='uploads/' + message.image) }}" alt="Image"
+                                class="message-image">
+                            {% endif %}
+                            {% else %}
                             <strong>{{ message.sender.username }}:</strong> {{ message.content }} <br>
                             {% if message.image %}
-                            <img src="{{ url_for('static', filename='uploads/' + message.image) }}" alt="Image" class="message-image">
-
+                            <img src="{{ url_for('static', filename='uploads/' + message.image) }}" alt="Image"
+                                class="message-image">
+                            {% endif %}
                             {% endif %}
                         </div>
                         {% endfor %}
                     </div>
-
-                    <!-- Input area for new messages -->
-                    <div class="row message-form align-items-center">
-                        <div class="col-1 text-center">
-                            <i class="fa fa-smile-o fa-2x emoji-button" title="Attach Image"></i>
-                            <input type="file" id="file-input" style="display: none;">
-                        </div>
-                        <div class="col-9">
-                            <form id="message-form" action="{{ url_for('send_message') }}" method="POST" enctype="multipart/form-data">
+                    <form id="message-form" action="{{ url_for('send_message') }}" method="POST"
+                        enctype="multipart/form-data">
+                        <div class="row message-form align-items-center">
+                            <div class="col-1 text-center">
+                                <i class="fa fa-smile-o fa-2x emoji-button" title="Attach Image"></i>
+                                <input type="file" id="file-input" style="display: none;">
+                            </div>
+                            <div class="col-9">
                                 <input type="hidden" id="receiver-id" name="receiver_id" value="{{ selected_chat.id }}">
-                                <textarea name="message" required class="form-control" rows="1" placeholder="Type your message..."></textarea>
-                            </form>
+                                <textarea name="message" required class="form-control" rows="1"
+                                    placeholder="Type your message..."></textarea>
+                            </div>
+                            <div class="col-1 text-center">
+                                <button type="button" id="send-button" class="btn btn-primary">
+                                    <i class="fa fa-send fa-2x" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                            <input type="hidden" id="image-data" name="image-data">
                         </div>
-                        <div class="col-1 text-center">
-                            <button type="submit" form="message-form" class="btn btn-primary">
-                                <i class="fa fa-send fa-2x" aria-hidden="true"></i>
-                            </button>
-                        </div>
-                    </div>
+                    </form>
                 </div>
             </div>
 
@@ -104,13 +106,11 @@
 
     <script>
         $(document).ready(function () {
-            // User selection and redirection
             $('.user').on('click', function () {
                 const selectedUserId = $(this).data('id');
                 window.location.href = '/chat/' + selectedUserId;
             });
 
-            // Message form submission via AJAX
             $('#message-form').on('submit', function (event) {
                 event.preventDefault();
                 const formData = new FormData(this);
@@ -123,7 +123,7 @@
                     contentType: false,
                     success: function (response) {
                         // Append the new message to the chat window
-                        $('#messages').append('<div class="message sent"><strong>' + '{{ current_user.username }}:</strong> ' + formData.get('message') + '</div>');
+                        $('#messages').append('<div class="message sent"><strong>You:</strong> ' + formData.get('message') + '</div>');
                         if (response.image_url) {
                             $('#messages').append('<img src="' + response.image_url + '" alt="Image" class="message-image">');
                         }
@@ -136,50 +136,68 @@
                 });
             });
 
-            // Toggle the sidebar for mobile view
             $('#toggle-sidebar').on('click', function () {
                 $('#sidebar').toggleClass('d-none');
             });
 
-            // Socket.io listener for incoming messages
             const socket = io();
             socket.on('message', function (data) {
-                $('#messages').append('<div class="message received"><strong>' + data.sender.username + ':</strong> ' + data.content + '</div>');
+                // Check if the message is sent by the current user
+                const isSentByCurrentUser = data.sender.id === '{{ current_user.id }}';
+
+                // Create a new message div
+                let messageHTML = '<div class="message ' + (isSentByCurrentUser ? 'sent' : 'received') + '">';
+                messageHTML += '<strong>' + data.sender.username + ':</strong> ' + data.content + '<br>';
+
+                // Add image if it exists
                 if (data.image) {
-                    $('#messages').append('<img src="' + data.image_url + '" alt="Image" class="message-image">');
+                    const imageUrl = data.image_url ? data.image_url : ''; // Use image_url from the data
+                    messageHTML += '<img src="' + imageUrl + '" alt="Image" class="message-image">';
                 }
+
+                messageHTML += '</div>';
+
+                // Append the message to the message section
+                $('#messages').append(messageHTML);
             });
 
-            // Trigger file input on emoji icon click
             $('.emoji-button').on('click', function () {
                 $('#file-input').click();
             });
 
-            // When a file is selected, append it to the form data
             $('#file-input').on('change', function () {
                 const file = this.files[0];
                 if (file) {
-                    const formData = new FormData($('#message-form')[0]);
-                    formData.append('image', file);
-
-                    // AJAX call to submit the message and the image
-                    $.ajax({
-                        type: 'POST',
-                        url: $('#message-form').attr('action'),
-                        data: formData,
-                        processData: false,
-                        contentType: false,
-                        success: function (response) {
-                            $('#messages').append('<div class="message sent"><strong>' + '{{ current_user.username }}:</strong> <img src="' + response.image_url + '" alt="Image" class="message-image"><br>' + formData.get('message') + '</div>');
-                            $('textarea[name="message"]').val(''); // Clear the message input
-                            $('#file-input').val(''); // Clear the file input
-                        },
-                        error: function (err) {
-                            console.error('Error uploading image:', err);
-                            alert('Image could not be uploaded. Please try again.');
-                        }
-                    });
+                    $('#file-input').data('file', file);
                 }
+            });
+
+            $('#send-button').on('click', function () {
+                const formData = new FormData($('#message-form')[0]);
+                const file = $('#file-input').data('file');
+                if (file) {
+                    formData.append('image', file);
+                }
+
+                $.ajax({
+                    type: 'POST',
+                    url: $('#message-form').attr('action'),
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        // Handle the response, like appending the new message
+                        $('#messages').append('<div class="message sent"><strong>You:</strong> ' + formData.get('message') + '</div>');
+                        if (response.image_url) {
+                            $('#messages').append('<img src="/static/uploads/' + response.image_url + '" alt="Image" class="message-image">');
+                        }
+                        $('textarea[name="message"]').val(''); // Clear the message input
+                    },
+                    error: function (err) {
+                        console.error('Error uploading image:', err);
+                        alert('Image could not be uploaded. Please try again.');
+                    }
+                });
             });
         });
     </script>

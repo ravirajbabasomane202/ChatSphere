@@ -1,25 +1,10 @@
-#source myenv/bin/activate
-
-#   User Name   Password
-#   om          om@123
-#   sam         sam@123
-#   ravi        ravi@123 
-
-#git branch
-#git checkout DesignUpdate
-#git add .
-#git commit -m "Your commit message"
-#git push
-
 from cryptography.hazmat.primitives.asymmetric import rsa, padding as asymmetric_padding
-
-from flask import Flask, render_template, redirect, url_for, request, flash, jsonify
+from flask import Flask, render_template, redirect, url_for, request, flash, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from forms import LoginForm, SignupForm, MessageForm, LogoutForm
-#from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import hashes
@@ -51,7 +36,7 @@ if not os.path.exists(UPLOAD_FOLDER):
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-socketio = SocketIO(app,cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -59,7 +44,7 @@ def allowed_file(filename):
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
-    
+
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -81,152 +66,89 @@ class Message(db.Model):
     sender = db.relationship('User', foreign_keys=[sender_id])
     receiver = db.relationship('User', foreign_keys=[receiver_id])
 
-def rsa_encrypt(public_key, data):
-
+def rsa_encrypt(public_key_str, data):
     try:
-
-        encrypted_data = public_key.encrypt(
-
-            data,
-
-            asymmetric_padding.OAEP(
-
-                mgf=asymmetric_padding.MGF1(algorithm=hashes.SHA256()),
-
-                algorithm=hashes.SHA256(),
-
-                label=None
-
-            )
-
+        # Load public key from string
+        public_key = serialization.load_ssh_public_key(
+            public_key_str.encode(),
+            backend=default_backend()
         )
 
+        encrypted_data = public_key.encrypt(
+            data,
+            asymmetric_padding.OAEP(
+                mgf=asymmetric_padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
         encrypted_base64 = base64.b64encode(encrypted_data).decode('utf-8')
-
         logging.debug(f"Encrypted data (RSA): {encrypted_base64}")
-
         return encrypted_base64
-
     except Exception as e:
-
         logging.error(f"Error encrypting data with RSA: {e}")
-
         raise
 
 def rsa_decrypt(private_key, enc_data):
-
     try:
-
         decoded_data = base64.b64decode(enc_data)
-
         decrypted_data = private_key.decrypt(
-
             decoded_data,
-
             asymmetric_padding.OAEP(
-
                 mgf=asymmetric_padding.MGF1(algorithm=hashes.SHA256()),
-
                 algorithm=hashes.SHA256(),
-
                 label=None
-
             )
-
         )
-
         logging.debug(f"Decrypted data (RSA): {decrypted_data}")
-
         return decrypted_data
-
     except Exception as e:
-
         logging.error(f"Error decrypting data with RSA: {e}")
-
         raise
 
 def aes_encrypt(key, message):
-
     try:
-
         iv = os.urandom(16)
-
         cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
-
         encryptor = cipher.encryptor()
-
         padder = padding.PKCS7(128).padder()
-
         padded_data = padder.update(message) + padder.finalize()
-
         ct = encryptor.update(padded_data) + encryptor.finalize()
-
         return base64.b64encode(iv).decode('utf-8'), base64.b64encode(ct).decode('utf-8')
-
     except Exception as e:
-
         logging.error(f"Error encrypting data with AES: {e}")
-
         raise
 
 def aes_decrypt(key, iv, ciphertext):
-
     try:
-
         iv = base64.b64decode(iv)
-
         ct = base64.b64decode(ciphertext)
-
         cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
-
         decryptor = cipher.decryptor()
-
         decrypted_padded_data = decryptor.update(ct) + decryptor.finalize()
-
         unpadder = padding.PKCS7(128).unpadder()
-
         message = unpadder.update(decrypted_padded_data) + unpadder.finalize()
-
         return message.decode('utf-8')
-
     except Exception as e:
-
         logging.error(f"Error decrypting data with AES: {e}")
-
         raise
 
 def generate_rsa_key_pair():
-
     key = rsa.generate_private_key(
-
         public_exponent=65537,
-
         key_size=2048,
-
         backend=default_backend()
-
     )
-
     private_key = key.private_bytes(
-
         encoding=serialization.Encoding.PEM,
-
         format=serialization.PrivateFormat.PKCS8,
-
         encryption_algorithm=serialization.NoEncryption()
-
     ).decode('utf-8')
-
     public_key = key.public_key().public_bytes(
-
         encoding=serialization.Encoding.OpenSSH,
-
         format=serialization.PublicFormat.OpenSSH
-
     ).decode('utf-8')
-
     return private_key, public_key
-
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -264,20 +186,15 @@ def login():
             flash('Login Unsuccessful. Please check username and password', 'danger')
     return render_template('login.html', form=form)
 
-
 @app.route('/chat', defaults={'selected_user_id': None})
 @app.route('/chat/<int:selected_user_id>', methods=['GET', 'POST'])
 @login_required
 def chat(selected_user_id):
     try:
         users = User.query.all()
-
         if request.method == 'POST':
-            # Handling the AJAX message post request
             message_content = request.form['message']
             receiver_id = request.form['receiver_id']
-            
-            # Save the message to the database
             new_message = Message(
                 sender_id=current_user.id,
                 receiver_id=receiver_id,
@@ -285,17 +202,13 @@ def chat(selected_user_id):
             )
             db.session.add(new_message)
             db.session.commit()
-
-            # Optionally emit the message through Socket.IO here
             socketio.emit('message', {
                 'sender_id': current_user.id,
                 'receiver_id': receiver_id,
                 'content': message_content
             })
-
             return jsonify({'status': 'Message sent successfully'})
 
-        # Fetch messages between the current user and the selected user
         messages = []
         selected_chat = None
         if selected_user_id:
@@ -313,8 +226,6 @@ def chat(selected_user_id):
         flash('Error retrieving chat data. Please try again later.', 'danger')
         return redirect(url_for('login'))
 
-
-
 @app.route('/send_message', methods=['POST'])
 @login_required
 def send_message():
@@ -329,72 +240,56 @@ def send_message():
         # Handle image file if provided
         if image_file and allowed_file(image_file.filename):
             image_filename = secure_filename(image_file.filename)
-            image_file.save(os.path.join(app.config['UPLOAD_FOLDER'], image_filename))
+            image_path = os.path.join(app.config['UPLOAD_FOLDER'], image_filename)
+            image_file.save(image_path)
+            print(f"Image file saved to {image_path}") 
+            # Store only the filename, not the full path
+            # This will be stored in the database
+        else:
+            # If no image file is uploaded, you can set it to None
+            image_filename = None
 
-        # Encrypt the message using RSA and AES
-        sender_private_key = current_user.private_key
-        receiver = db.session.get(User, receiver_id)
+        # Generate AES key for encryption
+        aes_key = os.urandom(32)  # AES-256 key
+        iv, encrypted_message = aes_encrypt(aes_key, content.encode())
 
-        if not receiver:
-            return jsonify({'status': 'Receiver not found!'}), 404
+        # Encrypt AES key with receiver's RSA public key
+        receiver = User.query.get(receiver_id)
+        encrypted_aes_key = rsa_encrypt(receiver.public_key, aes_key)
 
-        # Ensure the receiver's public key is retrieved correctly
-        try:
-            receiver_public_key = serialization.load_ssh_public_key(receiver.public_key.encode('utf-8'), backend=default_backend())
-        except Exception as e:
-            logging.error(f"Error loading receiver's public key: {e}")
-            return jsonify({'status': 'Failed to load receiver public key!'}), 500
-
-        # Generate a random AES key and encrypt it with the receiver's public key
-        aes_key = os.urandom(32)
-        encrypted_aes_key = rsa_encrypt(receiver_public_key, aes_key)
-
-        # Encrypt the message content
-        iv, ciphertext = aes_encrypt(aes_key, content.encode('utf-8'))
-
-        # Create a new message with the optional image
+        # Store message with encrypted data
         message = Message(
             sender_id=current_user.id,
             receiver_id=receiver_id,
             iv=iv,
-            ciphertext=ciphertext,
+            ciphertext=encrypted_message,
             encrypted_aes_key=encrypted_aes_key,
-            image=image_filename,  # Only store the filename
+            image=image_filename,  # Store only the filename
             content=content
         )
-
         db.session.add(message)
         db.session.commit()
 
-        # Emit message via SocketIO
+        # Emit message event via SocketIO
         socketio.emit('message', {
-            'content': 'Message sent!',
             'sender_id': current_user.id,
             'receiver_id': receiver_id,
-            'image': image_filename,  # Optional: include image filename in the emitted message
+            'content': content,
+            'image_url': image_filename  # Send the filename to the frontend
         })
 
-        return jsonify({'status': 'Message sent!'}), 200
+        return jsonify({'status': 'Message sent successfully', 'image_url': image_filename})
 
     except Exception as e:
-        db.session.rollback()  # Rollback if there’s an error
-        app.logger.error(f"Error sending message: {e}")
-        return jsonify({'status': 'Failed to send message!'}), 500
-
-@socketio.on('message')
-def handle_message(msg):
-    print(f'Message: {msg}')
+        logging.error(f"Error sending message: {e}")
+        return jsonify({'status': 'Error sending message. Please try again.'}), 500
 
 @app.route('/logout', methods=['POST'])
 @login_required
 def logout():
     logout_user()
+    flash('You have been logged out!', 'success')
     return redirect(url_for('login'))
 
-
 if __name__ == '__main__':
-        # Ensure database migrations are applied
-    from flask_migrate import upgrade
-    with app.app_context():
-        upgrade()
     socketio.run(app, debug=True)
