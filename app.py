@@ -4,6 +4,13 @@
 #   om          om@123
 #   sam         sam@123
 #   ravi        ravi@123 
+
+#git branch
+#git checkout DesignUpdate
+#git add .
+#git commit -m "Your commit message"
+#git push
+
 from cryptography.hazmat.primitives.asymmetric import rsa, padding as asymmetric_padding
 
 from flask import Flask, render_template, redirect, url_for, request, flash, jsonify
@@ -258,7 +265,6 @@ def login():
     return render_template('login.html', form=form)
 
 
-
 @app.route('/chat', defaults={'selected_user_id': None})
 @app.route('/chat/<int:selected_user_id>', methods=['GET', 'POST'])
 @login_required
@@ -309,14 +315,6 @@ def chat(selected_user_id):
 
 
 
-
-@app.route('/logout', methods=['POST'])
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for('login'))
-
-
 @app.route('/send_message', methods=['POST'])
 @login_required
 def send_message():
@@ -324,17 +322,14 @@ def send_message():
     content = request.form.get('message')
     image_file = request.files.get('image')
 
-    # Initialize image_path
-    image_path = None
+    # Initialize image_filename
+    image_filename = None
 
     try:
         # Handle image file if provided
         if image_file and allowed_file(image_file.filename):
             image_filename = secure_filename(image_file.filename)
-            image_path = os.path.join(app.config['UPLOAD_FOLDER'], image_filename)
-            image_file.save(image_path)
-        elif image_file:  # If an image is provided but not allowed
-            return jsonify({'status': 'Invalid file type!'}), 400
+            image_file.save(os.path.join(app.config['UPLOAD_FOLDER'], image_filename))
 
         # Encrypt the message using RSA and AES
         sender_private_key = current_user.private_key
@@ -364,7 +359,7 @@ def send_message():
             iv=iv,
             ciphertext=ciphertext,
             encrypted_aes_key=encrypted_aes_key,
-            image=image_path,
+            image=image_filename,  # Only store the filename
             content=content
         )
 
@@ -373,9 +368,10 @@ def send_message():
 
         # Emit message via SocketIO
         socketio.emit('message', {
-            'content': 'Stego image sent!',
+            'content': 'Message sent!',
             'sender_id': current_user.id,
-            'receiver_id': receiver_id
+            'receiver_id': receiver_id,
+            'image': image_filename,  # Optional: include image filename in the emitted message
         })
 
         return jsonify({'status': 'Message sent!'}), 200
@@ -383,12 +379,17 @@ def send_message():
     except Exception as e:
         db.session.rollback()  # Rollback if there’s an error
         app.logger.error(f"Error sending message: {e}")
-        return jsonify({'status': 'Failed to send message!', 'error': str(e)}), 500
+        return jsonify({'status': 'Failed to send message!'}), 500
 
 @socketio.on('message')
 def handle_message(msg):
     print(f'Message: {msg}')
 
+@app.route('/logout', methods=['POST'])
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
 
 
 if __name__ == '__main__':
