@@ -30,6 +30,7 @@ This is a secure messaging application built with Flask that enables users to se
    cd ChatSphere
 2. Run this commands:
    ```bash
+   set FLASK_APP=app.py
    pip install -r requirements.txt
    flask db init
    flask db migrate -m "Initial migration."
